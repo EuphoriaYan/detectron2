@@ -139,10 +139,11 @@ if __name__ == "__main__":
                             bfp.write('\n')
                         ud_list.sort()
                         split_list = []
+                        threshold = w / h / 3
                         for i in range(len(ud_list)):
                             NMS_flag = False
                             for candidate_split in split_list:
-                                if abs(ud_list[i][1] - candidate_split) < 0.05:
+                                if abs(ud_list[i][1] - candidate_split) < threshold:
                                     NMS_flag = True
                                     break
                             if NMS_flag:
