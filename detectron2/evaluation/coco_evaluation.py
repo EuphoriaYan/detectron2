@@ -326,10 +326,10 @@ class COCOEvaluator(DatasetEvaluator):
         # from https://github.com/facebookresearch/Detectron/blob/a6a835f5b8208c45d0dce217ce9bbda915f44df7/detectron/datasets/json_dataset_evaluator.py#L222-L252 # noqa
         precisions = coco_eval.eval["precision"]
         # precision has dims (iou, recall, cls, area range, max dets)
-        assert len(class_names) == precisions.shape[2]
+        # assert len(class_names) == precisions.shape[2]
 
         results_per_category = []
-        for idx, name in enumerate(class_names):
+        for idx, name in enumerate(precisions.shape[2]):
             # area range index 0: all area ranges
             # max dets index -1: typically 100 per image
             precision = precisions[:, :, idx, 0, -1]
