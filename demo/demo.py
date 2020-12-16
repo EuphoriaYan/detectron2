@@ -47,12 +47,12 @@ def get_parser():
         "--input",
         nargs="+",
         help="A list of space separated input images; "
-        "or a single glob pattern such as 'directory/*.jpg'",
+             "or a single glob pattern such as 'directory/*.jpg'",
     )
     parser.add_argument(
         "--output",
         help="A file or directory to save output visualizations. "
-        "If not given, will show output in an OpenCV window.",
+             "If not given, will show output in an OpenCV window.",
     )
 
     parser.add_argument(
@@ -88,6 +88,7 @@ if __name__ == "__main__":
         for path in tqdm.tqdm(args.input, disable=not args.output):
             # use PIL, to be consistent with evaluation
             img = read_image(path, format="BGR")
+            h, w, c = img.shape
             start_time = time.time()
             predictions, visualized_output = demo.run_on_image(img)
             logger.info(
@@ -104,10 +105,57 @@ if __name__ == "__main__":
                 if os.path.isdir(args.output):
                     assert os.path.isdir(args.output), args.output
                     out_filename = os.path.join(args.output, os.path.basename(path))
+                    box_filename = os.path.join(args.output, os.path.splitext(os.path.basename(path))[0] + '.txt')
+                    split_filename = os.path.join(args.output,
+                                                  os.path.splitext(os.path.basename(path))[0] + '_split.txt')
                 else:
                     assert len(args.input) == 1, "Please specify a directory with args.output"
                     out_filename = args.output
+                    box_filename = os.path.splitext(args.output)[0] + '.txt'
+                    split_filename = os.path.splitext(args.output)[0] + '_split.txt'
                 visualized_output.save(out_filename)
+                if "instances" in predictions:
+                    instances = predictions["instances"].to('cpu')
+                    boxes = instances.pred_boxes
+                    scores = instances.scores if instances.has("scores") else None
+                    ud_list = []
+                    with open(box_filename, 'w', encoding='utf-8') as bfp, open(split_filename, 'w',
+                                                                                encoding='utf-8') as sfp:
+                        for i, box in enumerate(boxes):
+                            if scores is not None:
+                                score = scores[i].numpy().tolist()
+                            box = box.numpy().tolist()
+                            if scores is not None:
+                                ud_list.append((score, box[1] / h))
+                                ud_list.append((score, box[3] / h))
+                            else:
+                                ud_list.append((1.0, box[1] / h))
+                                ud_list.append((1.0, box[3] / h))
+                            box = list(map(int, box))
+                            box = list(map(str, box))
+                            bfp.write(','.join(box))
+                            if scores is not None:
+                                bfp.write(',{:.4f}'.format(score))
+                            bfp.write('\n')
+                        ud_list.sort()
+                        split_list = []
+                        for i in range(len(ud_list)):
+                            NMS_flag = False
+                            for candidate_split in split_list:
+                                if abs(ud_list[i][1] - candidate_split) < 0.05:
+                                    NMS_flag = True
+                                    break
+                            if NMS_flag:
+                                continue
+                            split_list.append(ud_list[i][1])
+                        split_list = [s for s in split_list if 0.01 < s < 0.99]
+                        split_list.sort()
+                        split_list = [int(s * h) for s in split_list]
+                        split_list = [(0, s, w - 1, s) for s in split_list]
+                        for split in split_list:
+                            split = list(map(str, split))
+                            sfp.write(','.join(split) + '\n')
+
             else:
                 cv2.namedWindow(WINDOW_NAME, cv2.WINDOW_NORMAL)
                 cv2.imshow(WINDOW_NAME, visualized_output.get_image()[:, :, ::-1])
