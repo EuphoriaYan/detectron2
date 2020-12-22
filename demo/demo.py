@@ -149,7 +149,7 @@ if __name__ == "__main__":
                             if NMS_flag:
                                 continue
                             split_list.append(ud_list[i][1])
-                        split_list = [s for s in split_list if 0.01 < s < 0.99]
+                        # split_list = [s for s in split_list if 0.01 < s < 0.99]
                         split_list.sort()
                         split_list = [int(s * h) for s in split_list]
                         split_list = [(0, s, w - 1, s) for s in split_list]
