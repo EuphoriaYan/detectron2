@@ -55,7 +55,7 @@ def export_torchscript_with_instances(model, fields):
     from copy import deepcopy
 
     # TODO: __prepare_scriptable__ was reverted from pytorch: D25061862
-    # We hack it here until it's added back
+    # We hack it here until it's added back in https://github.com/pytorch/pytorch/pull/49242
     model = deepcopy(model)
     for m in model.modules():
         for name, subm in m.named_children():
@@ -77,6 +77,7 @@ def dump_torchscript_IR(model, dir):
         model (TracedModule or ScriptModule): traced or scripted module
         dir (str): output directory to dump files.
     """
+    # TODO: support ScriptFunction as well
     PathManager.mkdirs(dir)
 
     def _get_script_mod(mod):
